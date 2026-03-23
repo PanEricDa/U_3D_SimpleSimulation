@@ -129,7 +129,7 @@ OnPathBlocked(FIntPoint)
 | P1b — AGridTestCharacter AI 随机游走 | ✅ 用户验收通过 | AI 循环游走、卡死保护、ManualModeTimeout 自动回归 |
 | P1c — Enhanced Input 点击交互 | ✅ 用户验收通过 | 重构为单 IA_GridClick + EGridControlMode 枚举状态机；已修复 trace 和模式切换 bug |
 | P2 — 材质规则系统 | ✅ 用户验收通过 | |
-| P3 — NavMesh 感知 + 预置障碍绕行 | ⏳ 待开始 | |
+| P3 — NavMesh 感知 + 预置障碍绕行 | ✅ 用户验收通过 | |
 
 ---
 

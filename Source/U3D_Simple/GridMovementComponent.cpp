@@ -349,15 +349,39 @@ void UGridMovementComponent::StartNextStep()
     // 动态障碍保护：每步出发前检查目标格当前通行性
     if (!Sub->IsCellWalkable(NextCell))
     {
-        SetMoveState(EGridMoveState::Blocked);
-        OnPathBlocked.Broadcast(NextCell);
-        if (GEngine)
+        // 尝试重新规划路径
+        int32 OldPathSteps = GridPath.Num() - PathIndex;
+        FVector CurrentWorldPos = GetOwner()->GetActorLocation();
+        FVector TargetWorldPos = Sub->GridToWorld(TargetCell);
+        TArray<FIntPoint> NewPath;
+
+        if (BuildGridPath(CurrentWorldPos, TargetWorldPos, NewPath) && !NewPath.IsEmpty())
         {
-            GEngine->AddOnScreenDebugMessage(101, 3.f, FColor::Orange,
-                FString::Printf(TEXT("[Move] Path blocked at (%d,%d)"),
-                    NextCell.X, NextCell.Y));
+            // 重规划成功
+            GridPath = NewPath;
+            PathIndex = 0;
+            NextCell = GridPath[PathIndex];
+
+            if (GEngine)
+            {
+                GEngine->AddOnScreenDebugMessage(102, 3.f, FColor::Cyan,
+                    FString::Printf(TEXT("[Move] Replanning -> OK | new:%d steps (was %d)"),
+                        NewPath.Num(), OldPathSteps));
+            }
         }
-        return;
+        else
+        {
+            // 无路可走
+            SetMoveState(EGridMoveState::Blocked);
+            OnPathBlocked.Broadcast(NextCell);
+            if (GEngine)
+            {
+                GEngine->AddOnScreenDebugMessage(101, 3.f, FColor::Orange,
+                    FString::Printf(TEXT("[Move] State:Blocked | No path to (%d,%d)"),
+                        TargetCell.X, TargetCell.Y));
+            }
+            return;
+        }
     }
 
     FGridCell NextCellData;

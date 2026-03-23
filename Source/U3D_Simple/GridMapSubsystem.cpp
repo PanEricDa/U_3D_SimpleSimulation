@@ -1,6 +1,71 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GridMapSubsystem.h"
+#include "TerrainScanner.h"
+#include "NavigationSystem.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 生命周期与扫描器管理
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UGridMapSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+
+	// 监听 NavMesh 生成完成事件
+	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(&InWorld);
+	if (NavSys)
+	{
+		NavSys->OnNavigationGenerationFinishedDelegate.AddDynamic(this, &UGridMapSubsystem::OnNavMeshGenerated);
+	}
+}
+
+void UGridMapSubsystem::Deinitialize()
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+		if (NavSys)
+		{
+			NavSys->OnNavigationGenerationFinishedDelegate.RemoveAll(this);
+		}
+	}
+
+	Super::Deinitialize();
+}
+
+void UGridMapSubsystem::SetActiveScanner(UTerrainScanner* InScanner)
+{
+	ActiveScanner = InScanner;
+}
+
+void UGridMapSubsystem::OnNavMeshGenerated(ANavigationData* NavData)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(110, 5.f, FColor::Cyan, TEXT("[Nav] NavMesh ready -> triggering scan"));
+	}
+
+	if (ActiveScanner)
+	{
+		int32 OldWalkableCount = GetWalkableCellCount();
+		
+		// 重新扫描
+		ActiveScanner->ScanTerrain(this);
+		
+		int32 NewWalkableCount = GetWalkableCellCount();
+		
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(111, 5.f, FColor::Cyan, 
+				FString::Printf(TEXT("[Grid] Rescan done | Walk:%d (was %d, %d blocked by obstacles)"), 
+					NewWalkableCount, OldWalkableCount, OldWalkableCount - NewWalkableCount));
+		}
+	}
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 数据写入

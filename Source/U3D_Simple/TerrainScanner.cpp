@@ -32,6 +32,9 @@ void UTerrainScanner::ScanTerrain(UObject* WorldContextObject)
 		return;
 	}
 
+	// 将当前扫描器注册为活跃扫描器，以便后续 NavMesh 更新时自动复用该配置
+	GridMapSubsystem->SetActiveScanner(this);
+
 	// 步骤 4：清空旧的网格数据，确保本次扫描结果干净
 	GridMapSubsystem->ClearAllCells();
 

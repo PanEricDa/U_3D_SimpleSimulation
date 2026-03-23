@@ -7,6 +7,9 @@
 #include "GridTypes.h"
 #include "GridMapSubsystem.generated.h"
 
+class UTerrainScanner;
+class ANavigationData;
+
 /**
  * @class UGridMapSubsystem
  * @brief 网格地图子系统 - 全局单例，随 World 生命周期自动创建与销毁
@@ -23,6 +26,12 @@ class U3D_SIMPLE_API UGridMapSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
+	// -------------------------------------------------------------------------
+	// 生命周期
+	// -------------------------------------------------------------------------
+
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	virtual void Deinitialize() override;
 
 	// -------------------------------------------------------------------------
 	// 格子尺寸常量
@@ -154,11 +163,37 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void GetAllCells(TArray<FGridCell>& OutCells) const;
 
+	// -------------------------------------------------------------------------
+	// 扫描器管理
+	// -------------------------------------------------------------------------
+
+	/**
+	 * @brief 注册活跃的扫描器。当 NavMesh 更新时将调用该扫描器重新扫描。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grid|Scanner")
+	void SetActiveScanner(UTerrainScanner* InScanner);
+
+	/**
+	 * @brief 获取当前注册的扫描器
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grid|Scanner")
+	UTerrainScanner* GetActiveScanner() const { return ActiveScanner; }
+
 private:
 
 	// -------------------------------------------------------------------------
 	// 内部数据
 	// -------------------------------------------------------------------------
+
+	/**
+	 * 当前使用的扫描器实例（由外部比如 AGridDebugActor 注册）
+	 */
+	UPROPERTY()
+	TObjectPtr<UTerrainScanner> ActiveScanner;
+
+	/** NavMesh 生成完成的回调 */
+	UFUNCTION()
+	void OnNavMeshGenerated(ANavigationData* NavData);
 
 	/**
 	 * 网格数据主存储。
